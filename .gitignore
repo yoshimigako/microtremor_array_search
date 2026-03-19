@@ -1,0 +1,7 @@
+*
+!*/
+!*.py
+!*.md
+
+# Keep Git metadata and this ignore file itself
+!.gitignore
