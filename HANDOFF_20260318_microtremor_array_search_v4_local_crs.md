@@ -10,6 +10,7 @@
 - Git 管理は開始済み。原則として `*.py` と `*.md` のみを追跡する
 - GitHub リポジトリは作成済みで、既定ブランチは `main`
 - 認証情報、秘密鍵、トークン、公開鍵本文などの秘匿情報は文書・コード・コミットに残さない
+- Git 管理側の現行版にも GeoFabrik ローカル PBF 読み込み実装を取り込んだ
 
 ## 1. このスクリプトの役割
 
@@ -51,14 +52,21 @@
 
 ## 4. OSM の使い方
 
-シードごとに `ox.features_from_point(..., dist=SEARCH_RADIUS)` で以下を取得する。
+現行版は `ctrl-param.csv` の `OSM_SOURCE` で OSM 入力方式を切り替える。
+
+- `OSM_SOURCE=local_pbf`: GeoFabrik 等の `.osm.pbf` をローカル読込
+- `OSM_SOURCE=overpass`: 従来の `ox.features_from_point(..., dist=SEARCH_RADIUS)`
+
+`local_pbf` では、seed 周辺 bbox を一度だけ `ogr2ogr` で `local_osm_cache/*.gpkg` に切り出し、その `lines` / `multipolygons` レイヤを `pyogrio` で読む。
+
+そこから以下を組み立てる。
 
 - `noisy`: `motorway`, `trunk`, `primary`, `railway`
 - `prefer`: `park`, `recreation_ground`, `residential`, `service`, `unclassified`, `track`, `path`, `footway`, `cycleway`, `tertiary`, `pedestrian`
 - `fallback`: `secondary`
 - `water`: `natural=water`, `waterway`
 
-各 GeoDataFrame は `union_or_empty` で単一ジオメトリにまとめられる。
+各 GeoDataFrame は `union_or_empty` で単一ジオメトリにまとめられる。既定運用は `local_pbf`。
 
 ## 5. 中心点候補の作り方
 
@@ -142,8 +150,8 @@
 - `sample_center_candidates()` も `is_center_ok()` を満たした最初の点を採用するため、最良点探索ではなく「最初に見つかった可用点」探索
 - `CENTER_ICON` は 1,2,3 しか定義していないため、`MAX_CANDIDATES > 3` だと地図出力で落ちる
 - `os` は import されているが未使用
-- 依存ライブラリが必要: 少なくとも `numpy`, `pandas`, `osmnx`, `folium`, `shapely`, `pyproj`, `matplotlib`, `geopandas`
-- OSM 取得があるためネットワークが必要
+- `local_pbf` では `pyogrio` と `ogr2ogr` が追加で必要
+- `overpass` を使う場合のみネットワークが必要
 
 ## 11. 追加作業の推奨順
 
@@ -155,7 +163,14 @@
 4. `MAX_CANDIDATES > 3` 対応を入れる
 5. 実行環境を整えて再現実行し、代表地点でログと出力を検証する
 
-## 12. 今回の解析作業でできたこと / できていないこと
+## 12. 追加実装メモ
+
+- `OSM_SOURCE`, `OSM_PBF_FILE`, `LOCAL_OSM_MARGIN`, `LOCAL_CACHE_DIR`, `OGR2OGR_BIN` を追加
+- `local_pbf` ではローカル `.osm.pbf` から bbox 切り出し済み GeoPackage を再利用する
+- `overpass` モードは後方互換のため残してある
+- `select_diverse_top_candidates()` を追加し、上位候補の空間分散を持たせた
+
+## 13. 今回の解析作業でできたこと / できていないこと
 
 できたこと:
 
@@ -163,17 +178,17 @@
 - 旧版との差分把握
 - 入出力ファイルの対応確認
 - 既存出力 CSV の先頭確認
+- Git 管理側へローカル PBF 対応版を取り込み
 
 できていないこと:
 
-- 実行確認
 - OSM 通信を伴う再計算
 - 依存ライブラリ不足環境での動作検証
 
 実行不能理由:
 
 - この作業環境の `python3` に `pandas` などが未導入
-- OSM 取得にはネットワーク前提がある
+- `overpass` モードの再確認は未実施
 
 追記:
 

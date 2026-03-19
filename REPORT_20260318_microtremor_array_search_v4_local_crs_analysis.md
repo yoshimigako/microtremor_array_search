@@ -7,6 +7,7 @@
 
 - 実行確認に使う想定環境は `conda activate pygmt`
 - 今後の改修や検証は別ディレクトリで実施する
+- Git 管理側の現行版にも GeoFabrik ローカル PBF 読み込み実装を取り込んだ
 
 ## 1. 要約
 
@@ -97,7 +98,7 @@
 
 ## 5. OSM データの意味づけ
 
-スクリプトは OSM データを用途別に 4 種類へ分けている。
+スクリプトは OSM データを用途別に 4 種類へ分けている。現行版は `ctrl-param.csv` の `OSM_SOURCE` で、`local_pbf` と `overpass` を切り替える。
 
 ### 5.1 `noisy`
 
@@ -312,7 +313,7 @@ seed の周囲 `CENTER_SEARCH_RADIUS` m の円内に対し、`CENTER_GRID_STEP` 
 
 ## 14. 今回の解析範囲と制約
 
-今回はコード読解と既存ファイル確認による解析を実施した。
+今回はコード読解と既存ファイル確認による解析を実施した。加えて、Git 管理側の本体へローカル PBF 対応版を反映した。
 
 実施済み:
 
@@ -329,11 +330,25 @@ seed の周囲 `CENTER_SEARCH_RADIUS` m の円内に対し、`CENTER_GRID_STEP` 
 未実施理由:
 
 - この環境の `python3` に `pandas` 等が未導入
-- OSM 取得はネットワーク依存
+- `overpass` モードの追加検証は未実施
 
 ただし、ユーザー指示により `conda activate pygmt` 環境では確認可能とのこと。次回以降、実行検証が必要な場合は別ディレクトリ上の作業コピーでこの環境を使う。
 
-## 15. 追加の運用整理
+## 15. GeoFabrik ローカル PBF 対応
+
+Git 管理側の現行版では、GeoFabrik などから取得した `.osm.pbf` をローカル読込する経路を実装済みである。
+
+実装要点:
+
+- `OSM_SOURCE=local_pbf` を追加
+- `OSM_PBF_FILE`, `LOCAL_OSM_MARGIN`, `LOCAL_CACHE_DIR`, `OGR2OGR_BIN` を追加
+- `pyogrio` で `lines` / `multipolygons` を読み、タグ分類で `noisy / prefer / fallback / water` を構成
+- 直接 PBF を毎回読む代わりに、seed 周辺 bbox を `ogr2ogr` で `local_osm_cache/*.gpkg` に切り出して再利用
+- `OSM_SOURCE=overpass` の従来経路は後方互換として残す
+
+この構成により、既定運用では Overpass 通信なしで再現実行できる。
+
+## 16. 追加の運用整理
 
 2026-03-19 に Git / GitHub 運用を開始した。
 
@@ -350,7 +365,7 @@ seed の周囲 `CENTER_SEARCH_RADIUS` m の円内に対し、`CENTER_GRID_STEP` 
 - 公開して差し支えない運用メモのみを Markdown に残す
 - ローカル環境の認証設定は端末側で保持し、文書には展開しない
 
-## 16. 結論
+## 17. 結論
 
 このスクリプトは、OSM の道路・公園・水域・幹線交通情報を使って、実地観測に使いやすい 3 点アレイを半自動で選ぶ実務寄りの探索ツールである。
 
