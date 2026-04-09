@@ -365,7 +365,51 @@ Git 管理側の現行版では、GeoFabrik などから取得した `.osm.pbf` 
 - 公開して差し支えない運用メモのみを Markdown に残す
 - ローカル環境の認証設定は端末側で保持し、文書には展開しない
 
-## 17. 結論
+## 17. 2026-04-09 日報
+
+本日の作業では、本体ディレクトリの設定と実行状態を、作業コピーで確立した `local_pbf` 運用に揃えた。
+
+実施内容:
+
+- `ctrl-param.csv` を更新し、`local_pbf` を既定設定へ変更
+- `OSM_PBF_FILE` に `/Users/yoshimi/work/bido/python/Geofabrik_data/japan-260317.osm.pbf` を設定
+- `LOCAL_OSM_MARGIN`, `LOCAL_CACHE_DIR`, `OGR2OGR_BIN`, `DIVERSE_POOL_SIZE` を本体側設定に反映
+- `MAX_CANDIDATES` を `3` に戻し、分散候補提示を既定化
+- 本体側スクリプトを `pygmt` 環境で実行し、完走を確認
+
+実行結果:
+
+- 初回実行で `local_osm_cache/MYZ_1740m.gpkg` を生成
+- OSM 読込件数は作業コピー時と一致
+  - `lines=2368`
+  - `multipolygons=1881`
+  - `noisy=39`
+  - `prefer=2181`
+  - `fallback=2`
+  - `water=152`
+- 中心点候補数は `2913`
+- 出力は正常更新
+  - `array_primary_results.csv`: 65 行
+  - `array_best_by_radius.csv`: 29 行
+  - `array_penalty_breakdown.csv`: 29 行
+
+採用候補:
+
+- rank 1: `success_radii=6`, `max_radius=1000.0`
+- rank 2: `success_radii=4`, `max_radius=1200.0`, rank1 から約 `685.0 m`
+- rank 3: `success_radii=5`, `max_radius=1000.0`, 最小距離約 `400.2 m`
+
+再探索:
+
+- rank 1 の不足半径 `1200.0 m` に対し、`1153.0 m` で代替成功
+
+所見:
+
+- 本体ディレクトリでも `local_pbf` が既定設定として成立した
+- 初回の重い処理は bbox キャッシュ生成であり、その後は `local_osm_cache` 再利用で軽くできる
+- 現時点の主ボトルネックは OSM 取得ではなく `2913 × 半径数` の中心点評価である
+
+## 18. 結論
 
 このスクリプトは、OSM の道路・公園・水域・幹線交通情報を使って、実地観測に使いやすい 3 点アレイを半自動で選ぶ実務寄りの探索ツールである。
 

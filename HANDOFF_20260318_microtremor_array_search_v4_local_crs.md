@@ -198,3 +198,44 @@
 - `.gitignore` は `*.py` と `*.md` を除く作業生成物を追跡対象外とする方針
 - GitHub 連携は SSH で通る状態まで確認済み
 - 引き継ぎ文書には公開して問題ない運用情報のみ記載し、鍵や認証文字列は記録しない
+
+## 14. 2026-04-09 追記: 本体側の既定設定と実行確認
+
+本体ディレクトリ側の `ctrl-param.csv` を、`local_pbf` を既定とする設定へ更新した。
+
+反映内容:
+
+- `OSM_SOURCE=local_pbf`
+- `OSM_PBF_FILE=/Users/yoshimi/work/bido/python/Geofabrik_data/japan-260317.osm.pbf`
+- `LOCAL_OSM_MARGIN=100`
+- `LOCAL_CACHE_DIR=local_osm_cache`
+- `OGR2OGR_BIN=/opt/homebrew/bin/ogr2ogr`
+- `DIVERSE_POOL_SIZE=50`
+- `MAX_CANDIDATES=3`
+
+この設定で本体側 `microtremor_array_search202501-v4_local_crs.py` を `pygmt` 環境から実行し、正常終了を確認した。
+
+確認結果:
+
+- 初回実行で `local_osm_cache/MYZ_1740m.gpkg` を生成
+- `lines=2368`, `multipolygons=1881`
+- `noisy=39`, `prefer=2181`, `fallback=2`, `water=152`
+- `中心点候補数=2913`
+- `array_primary_results.csv`: 65 行
+- `array_best_by_radius.csv`: 29 行
+- `array_penalty_breakdown.csv`: 29 行
+
+採用候補ログ:
+
+- rank 1: `success_radii=6`, `max_radius=1000.0`
+- rank 2: `success_radii=4`, `max_radius=1200.0`, rank1 から約 `685.0 m`
+- rank 3: `success_radii=5`, `max_radius=1000.0`, 最小距離約 `400.2 m`
+
+再探索ログ:
+
+- rank 1 の不足半径 `1200.0 m` に対し、`1153.0 m` で代替成功
+
+運用上の意味:
+
+- 本体ディレクトリでも `local_pbf` 既定のまま再現実行できる状態になった
+- 初回は `ogr2ogr` による bbox キャッシュ生成で重いが、次回以降は `local_osm_cache/*.gpkg` を再利用できる
